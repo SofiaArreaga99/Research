@@ -98,7 +98,7 @@ write.csv(PseudoDataPiceaRu, file = "PiceaRu.csv", row.names = FALSE)
 
 ## Logaritmic differences
 
-noiter<-10
+noiter<-10000
 coefficients <- data.frame(intercept=rep(NA,noiter),slope=rep(NA,noiter))
 for(i in 1:noiter){
   datatofit<- sample_n(PseudoDataPiceaRu,200,replace=FALSE)
@@ -113,8 +113,18 @@ for(i in 1:noiter){
 
 
 mean(coefficients$intercept)
+mean(coefficients$slope)
 
 any(is.na(datatofit)) #NA revision in the data
 
 
 View(PseudoDataPiceaRu)
+
+
+View(coefficients)
+
+
+sd(coefficients$intercept) #standar deviation intercept
+
+sd(coefficients$slope)
+
