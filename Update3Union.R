@@ -82,7 +82,6 @@ Average_A_Plots <- mean(Sum_A_Plots$PloKg_Ha, na.rm = TRUE)
 
 resultados_df <- rbind(resultados_df, Average_A_Plots)
 
-
 }
 
 
