@@ -1,3 +1,4 @@
+#Please dowload the packages if you don´t have them already. 
 
 #Calling packages
 
@@ -5,36 +6,34 @@ library(fitdistrplus)
 library(distr)
 library(dplyr)
 
-## First Step  CREATE 10,000 RANDOM DBH // Large Numer DBH
+## 1. First Step  CREATE 10,000 RANDOM DBH // Large Numer DBH
 
 
-##Specie: Balsam Fir 
+##Specie: Balsam Fir Abies 
 
 rsqp<-0.993 ##Published R^2 value 
-minDBH<-6.4516 #From Jenkin´s
-maxDBH<-129.032 #From Jenkin´s
+minDBH<-6.4516 #From Jenkin´s Unit: Cm 
+maxDBH<-129.032 #From Jenkin´s Unit: Cm 
 B0<- -2.5187 #From Ry´s paper
 B1<- 2.416  #From Ry´s paper
 CF<- 1.005 #Should we include it?
 
-##CREATE 10,000 RANDOM DBH
+## 1.1 CREATE 10,000 RANDOM DBH
 
 test <- matrix(rnorm(10000 * 1000), nrow = 10000, ncol = 1000)
 
-##Create Random DBHs over the range sampled 
+## 1.2 Create Random DBHs over the range sampled 
 
-
-#Cm unit
 
 dbhBalFir <- minDBH + (maxDBH - minDBH) * runif(10000, min = 0, max = 1)
 
-## CALCULATE BIOMASS##
+## 2. CALCULATE BIOMASS##
 
 ## calculate the biomass using the published equation form
 
-meany <- exp(B0 + B1 * log(dbhBalFir)) #Should I multiply for the CF?
+meany <- (exp(B0 + B1 * log(dbhBalFir)))*CF #Should I multiply for the CF?
 
-##Introduce Random Error into calculated biomass
+## 3. Introduce Random Error into calculated biomass
 
 ##this next part fuzzies the biomasses to create 1000 different populations ## 
 
@@ -52,9 +51,11 @@ dbh2 <- matrix(rep(dbhBalFir, times = 1000), nrow = length(dbhBalFir), ncol = 10
 
 #psuedys=ys+stdevs2.*(test);%this makes the new biomasses if no heteroscedasticity #
 
-psuedys <- ys + stdevs2 * test * dbh2
 
 #this makes the new biomasses with heteroscedasticity #
+psuedys <- ys + stdevs2 * test * dbh2
+
+
 
 rsq2 <- numeric(1000)  # memory allocation is all, speeds up
 
@@ -98,30 +99,70 @@ write.csv(PseudoDataBalFir, file = "BalFir.csv", row.names = FALSE)
 ## Logaritmic differences
 
 noiter<-10000
-coefficients <- data.frame(intercept=rep(NA,noiter),slope=rep(NA,noiter))
+coefficients1 <- data.frame(intercept=rep(NA,noiter),slope=rep(NA,noiter))
 for(i in 1:noiter){
   datatofit<- sample_n(PseudoDataBalFir,200,replace=FALSE)
   modelfit <- lm(log(BMBalFir) ~ log(dbhBalFir), data = na.omit(datatofit)) #Just add the other part
   
   
-  coefficients[i,] <- unname(coef(modelfit))
+  coefficients1[i,] <- unname(coef(modelfit))
   
   
 }
 
+View(coefficients1)
+print(coefficients1)
 
 
-mean(coefficients$intercept)
-mean(coefficients$slope)
+InterAbies<-mean(coefficients1$intercept)
+SlopeAbies<-mean(coefficients1$slope)
 
 
 any(is.na(datatofit)) #NA revision in the data
 
 
-View(coefficients)
+View(coefficients1)
 
 
-sd(coefficients$intercept) #standar deviation intercept
+SDInterAbies<-sd(coefficients1$intercept) #standar deviation intercept
 
-sd(coefficients$slope)
+SDSlopeAbies<-sd(coefficients1$slope)
+
+
+### NEW COVARIANCE ##
+
+library(MASS)
+
+cov_matrix_Abies <- cov(coefficients1)
+mean_vector_Abies <- colMeans(coefficients1)
+
+
+View(cov_matrix_Abies)
+
+# Simulate new pairs of a and b         Simular nuevos pares de a y b
+sim_ab_Abies <- as.data.frame(mvrnorm(n = 10, mu = mean_vector_Abies, Sigma = cov_matrix_Abies))
+
+
+
+# Name columns for clarity              Nombrar columnas para claridad
+colnames(sim_ab_Abies) <- c("intercept_Abies", "slope_Abies")
+
+sim_ab_Abies$correlative <- seq_len(nrow(sim_ab_Abies))
+View(sim_ab_Abies)
+
+
+## Is it true "? 
+
+
+
+# Original Data Datos originales
+plot(coefficients1$intercept, coefficients1$slope, 
+     main = "Original vs Simulated Balsam Fir", col = "blue", pch = 16, cex = 0.5,
+     xlab = "Intercepto", ylab = "Pendiente")
+
+# Agregar simulaciones
+points(sim_ab_Abies$intercept, sim_ab_Abies$slope, col = rgb(1, 0, 0, 0.3), pch = 16)
+legend("topright", legend = c("Original", "Simulated"),
+       col = c("blue", "red"), pch = 16)
+
 

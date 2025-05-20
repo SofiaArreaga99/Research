@@ -12,8 +12,8 @@ library(dplyr)
 ##Specie: Tsuga canadensis  TsugaCa
 
 rsqp<-0.995 ##Published R^2 value 
-minDBH<-6.4516 #From Jenkin´s
-maxDBH<-129.032 #From Jenkin´s
+minDBH<-5 #From Jenkin´s
+maxDBH<-95 #From Jenkin´s
 B0<- -2.2925 #From Ry´s paper
 B1<- 2.35  #From Ry´s paper
 CF<- 1.003 #Should we include it?
@@ -33,7 +33,7 @@ dbhTsugaCa <- minDBH + (maxDBH - minDBH) * runif(10000, min = 0, max = 1)
 
 ## calculate the biomass using the published equation form
 
-meany <- exp(B0 + B1 * log(dbhTsugaCa)) #Should I multiply for the CF?
+meany <-(exp(B0 + B1 * log(dbhTsugaCa))*CF) #Should I multiply for the CF?
 
 ##Introduce Random Error into calculated biomass
 
@@ -99,29 +99,69 @@ write.csv(PseudoDataTsugaCa, file = "TsugaCa.csv", row.names = FALSE)
 ## Logaritmic differences
 
 noiter<-10000
-coefficients <- data.frame(intercept=rep(NA,noiter),slope=rep(NA,noiter))
+coefficients9 <- data.frame(intercept=rep(NA,noiter),slope=rep(NA,noiter))
 for(i in 1:noiter){
   datatofit<- sample_n(PseudoDataTsugaCa,200,replace=FALSE)
   modelfit <- lm(log(BMTsugaCa) ~ log(dbhTsugaCa), data = na.omit(datatofit)) #Just add the other part
   
   
-  coefficients[i,] <- unname(coef(modelfit))
+  coefficients9[i,] <- unname(coef(modelfit))
   
   
 }
 
 
 
-mean(coefficients$intercept)
-mean(coefficients$slope)
+InterTsuga<-mean(coefficients9$intercept)
+SlopeTsuga<-mean(coefficients9$slope)
 
 
 any(is.na(datatofit)) #NA revision in the data
 
 
-View(coefficients)
+View(coefficients9)
 
 
-sd(coefficients$intercept) #standar deviation intercept
+SDInterTsuga<-sd(coefficients9$intercept) #standar deviation intercept
 
-sd(coefficients$slope)
+SDSlopeTsuga<-sd(coefficients9$slope)
+
+
+### NEW COVARIANCE ##
+
+library(MASS)
+
+cov_matrix_Tsuga <- cov(coefficients9)
+mean_vector_Tsuga <- colMeans(coefficients9)
+
+
+View(cov_matrix_Tsuga)
+
+# Simulate new pairs of a and b      Simular nuevos pares de a y b
+sim_ab_Tsuga <- as.data.frame(mvrnorm(n = 10, mu = mean_vector_Tsuga, Sigma = cov_matrix_Tsuga))
+
+
+
+# Name columns for clarity            Nombrar columnas para claridad
+colnames(sim_ab_Tsuga) <- c("intercept_Tsuga", "slope_Tsuga")
+sim_ab_Tsuga$correlative <- seq_len(nrow(sim_ab_Tsuga))
+View(sim_ab_Tsuga)
+
+
+## Is it true "? 
+
+
+
+# Originial Data Datos originales
+plot(coefficients9$intercept, coefficients9$slope, 
+     main = "Original vs Simulated Tsuga", col = "blue", pch = 16, cex = 0.5,
+     xlab = "Intercept", ylab = "Slope")
+
+# Add SImulations Agregar simulaciones
+points(sim_ab_Tsuga$intercept, sim_ab_Tsuga$slope, col = rgb(1, 0, 0, 0.3), pch = 16)
+legend("topright", legend = c("Original", "Simulated"),
+       col = c("blue", "red"), pch = 16)
+
+
+
+

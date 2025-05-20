@@ -33,7 +33,7 @@ dbhFraxisAm <- minDBH + (maxDBH - minDBH) * runif(10000, min = 0, max = 1)
 
 ## calculate the biomass using the published equation form
 
-meany <- exp(B0 + B1 * log(dbhFraxisAm)) #Should I multiply for the CF?
+meany <- (exp(B0 + B1 * log(dbhFraxisAm)))*CF #Should I multiply for the CF?
 
 ##Introduce Random Error into calculated biomass
 
@@ -99,32 +99,70 @@ write.csv(PseudoDataFraxisAm, file = "FraxisAm.csv", row.names = FALSE)
 ## Logaritmic differences
 
 noiter<-10000
-coefficients <- data.frame(intercept=rep(NA,noiter),slope=rep(NA,noiter))
+coefficients4 <- data.frame(intercept=rep(NA,noiter),slope=rep(NA,noiter))
 for(i in 1:noiter){
   datatofit<- sample_n(PseudoDataFraxisAm,200,replace=FALSE)
   modelfit <- lm(log(BMFraxisAm) ~ log(dbhFraxisAm), data = na.omit(datatofit)) #Just add the other part
   
   
-  coefficients[i,] <- unname(coef(modelfit))
+  coefficients4[i,] <- unname(coef(modelfit))
   
   
 }
 
 
 
-mean(coefficients$intercept)
-mean(coefficients$slope)
+Interfraxis<-mean(coefficients4$intercept)
+Slopefraxis<-mean(coefficients4$slope)
 
 
 any(is.na(datatofit)) #NA revision in the data
 
 
-View(coefficients)
+View(coefficients4)
 
 
-sd(coefficients$intercept) #standar deviation intercept
+SDInterceptfraxis<-sd(coefficients4$intercept) #standar deviation intercept
 
-sd(coefficients$slope)
+SDSlopefraxis<-sd(coefficients4$slope)
+
+
+
+### NEW COVARIANCE ##
+
+library(MASS)
+
+cov_matrix_Fraxis <- cov(coefficients4)
+mean_vector_Fraxis <- colMeans(coefficients4)
+
+
+View(cov_matrix_Fraxis)
+
+# Simulate new pairs of a and b      Simular nuevos pares de a y b
+sim_ab_Fraxis <- as.data.frame(mvrnorm(n = 10, mu = mean_vector_Fraxis, Sigma = cov_matrix_Fraxis))
+
+
+
+# Name columns for clarity            Nombrar columnas para claridad
+colnames(sim_ab_Fraxis) <- c("intercept_Fraxis", "slope_Fraxis")
+sim_ab_Fraxis$correlative <- seq_len(nrow(sim_ab_Fraxis))
+View(sim_ab_Fraxis)
+
+
+## Is it true "? 
+
+
+
+# Originial Data Datos originales
+plot(coefficients4$intercept, coefficients4$slope, 
+     main = "Original vs Simulated", col = "blue", pch = 16, cex = 0.5,
+     xlab = "Intercepto", ylab = "Slope")
+
+# Add SImulations Agregar simulaciones
+points(sim_ab_Fraxis$intercept, sim_ab_Fraxis$slope, col = rgb(1, 0, 0, 0.3), pch = 16)
+legend("topright", legend = c("Original", "Simulated"),
+       col = c("blue", "red"), pch = 16)
+
 
 
 

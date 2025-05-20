@@ -14,8 +14,8 @@ library(dplyr)
 ##Specie: Pinus strobus
 
 rsqp<-0.995 ##Published R^2 value 
-minDBH<-6.4516 #From Jenkin´s
-maxDBH<-167.74 #From Jenkin´s
+minDBH<-5 #From Jenkin´s
+maxDBH<-85 #From Jenkin´s
 B0<- -2.558 #From Ry´s paper
 B1<- 2.3962  #From Ry´s paper
 CF<- 1.003
@@ -35,7 +35,7 @@ dbhPinStro <- minDBH + (maxDBH - minDBH) * runif(10000, min = 0, max = 1)
 
 ## calculate the biomass using the published equation form
 
-meany <- exp(B0 + B1 * log(dbhPinStro)) #Should I multiply for the CF?
+meany <- (exp(B0 + B1 * log(dbhPinStro))*CF) #Should I multiply for the CF?
 
 ##Introduce Random Error into calculated biomass
 
@@ -101,21 +101,21 @@ write.csv(PseudoDataPinStro, file = "PinStro.csv", row.names = FALSE)
 ## Logaritmic differences
 
 noiter<-10000
-coefficients <- data.frame(intercept=rep(NA,noiter),slope=rep(NA,noiter))
+coefficients8 <- data.frame(intercept=rep(NA,noiter),slope=rep(NA,noiter))
 for(i in 1:noiter){
-  datatofit<- sample_n(PseudoDataPiceaRu,200,replace=FALSE)
+  datatofit<- sample_n(PseudoDataPinStro,200,replace=FALSE)
   modelfit <- lm(log(BMPinStro) ~ log(dbhPinStro), data = na.omit(datatofit)) #Just add the other part
   
   
-  coefficients[i,] <- unname(coef(modelfit))
+  coefficients8[i,] <- unname(coef(modelfit))
   
   
 }
 
 
 
-mean(coefficients$intercept)
-mean(coefficients$slope)
+InterPinus<-mean(coefficients8$intercept)
+SlopePinus<-mean(coefficients8$slope)
 
 any(is.na(datatofit)) #NA revision in the data
 
@@ -123,9 +123,48 @@ any(is.na(datatofit)) #NA revision in the data
 View(PseudoDataPinStro)
 
 
-View(coefficients)
+View(coefficients8)
 
 
-sd(coefficients$intercept) #standar deviation intercept
+SDInterPinus<-sd(coefficients8$intercept) #standar deviation intercept
 
-sd(coefficients$slope)
+SDSlopePinus<-sd(coefficients8$slope)
+
+
+### NEW COVARIANCE ##
+
+library(MASS)
+
+cov_matrix_Pinus <- cov(coefficients8)
+mean_vector_Pinus <- colMeans(coefficients8)
+
+
+View(cov_matrix_Pinus)
+
+# Simulate new pairs of a and b      Simular nuevos pares de a y b
+sim_ab_Pinus <- as.data.frame(mvrnorm(n = 10, mu = mean_vector_Pinus, Sigma = cov_matrix_Pinus))
+
+
+
+# Name columns for clarity            Nombrar columnas para claridad
+colnames(sim_ab_Pinus) <- c("intercept_Pinus", "slope_Pinus")
+sim_ab_Pinus$correlative <- seq_len(nrow(sim_ab_Pinus))
+View(sim_ab_Pinus)
+
+
+## Is it true "? 
+
+
+
+# Originial Data Datos originales
+plot(coefficients8$intercept, coefficients8$slope, 
+     main = "Original vs Simulated Pinus", col = "blue", pch = 16, cex = 0.5,
+     xlab = "Intercept", ylab = "Slope")
+
+# Add SImulations Agregar simulaciones
+points(sim_ab_Pinus$intercept, sim_ab_Pinus$slope, col = rgb(1, 0, 0, 0.3), pch = 16)
+legend("topright", legend = c("Original", "Simulated"),
+       col = c("blue", "red"), pch = 16)
+
+
+

@@ -1,4 +1,4 @@
-#acer rubrum HacerRu
+#Fagus grandifolia
 
 #Calling packages
 
@@ -9,14 +9,14 @@ library(dplyr)
 ## First Step  CREATE 10,000 RANDOM DBH // Large Numer DBH
 
 
-##Specie: acer rubrum HacerRu
+##Specie: #Fagus grandifolia FagusGr
 
-rsqp<-0.99 ##Published R^2 value 
-minDBH<-10 #From Jenkin´s
-maxDBH<-75 #From Jenkin´s
-B0<- -2.1298 #From Ry´s paper
-B1<- 2.3914  #From Ry´s paper
-CF<- 1.006 #Should we include it?
+rsqp<-0.994 ##Published R^2 value 
+minDBH<-6.4516 #From Jenkin´s
+maxDBH<-167.7416 #From Jenkin´s
+B0<- -1.7448 #From Ry´s paper
+B1<- 2.3613  #From Ry´s paper
+CF<- 1.01 #Should we include it?
 
 ##CREATE 10,000 RANDOM DBH
 
@@ -27,13 +27,13 @@ test <- matrix(rnorm(10000 * 1000), nrow = 10000, ncol = 1000)
 
 #Cm unit
 
-dbhAcerRu <- minDBH + (maxDBH - minDBH) * runif(10000, min = 0, max = 1)
+dbhFagusGr <- minDBH + (maxDBH - minDBH) * runif(10000, min = 0, max = 1)
 
 ## CALCULATE BIOMASS##
 
 ## calculate the biomass using the published equation form
 
-meany <- (exp(B0 + B1 * log(dbhAcerRu)))*CF #Should I multiply for the CF?
+meany <- (exp(B0 + B1 * log(dbhFagusGr))*CF) #Should I multiply for the CF?
 
 ##Introduce Random Error into calculated biomass
 
@@ -49,7 +49,7 @@ ys <- matrix(rep(meany, times = 1000), nrow = length(meany), ncol = 1000)
 stdevs <- seq(0.1, 100, length.out=1000)  #works better
 
 stdevs2 <- matrix(rep(stdevs, each = 10000), nrow = 10000, ncol = length(stdevs))  
-dbh2 <- matrix(rep(dbhAcerRu, times = 1000), nrow = length(dbhAcerRu), ncol = 1000)
+dbh2 <- matrix(rep(dbhFagusGr, times = 1000), nrow = length(dbhFagusGr), ncol = 1000)
 
 #psuedys=ys+stdevs2.*(test);%this makes the new biomasses if no heteroscedasticity #
 
@@ -74,26 +74,23 @@ for (i in 1:1000) {  # get stats on the datasets using the fit vs. psuedo-popula
 
 diffs <- abs(rsq2 - rsqp)
 I <- which.min(diffs)  # Find the index of the minimum value
-BMAcerRu<- psuedys[, I]  # Select corresponding column
+BMFagusGr<- psuedys[, I]  # Select corresponding column
 
 ## Create figure for checking if result is reasonable ##
 
 
-plot(dbhAcerRu, BMAcerRu, pch = 16, xlab = "DBH (cm)", ylab = "Biomass (kg)", main = "BalFir")
+plot(dbhFagusGr, BMFagusGr, pch = 16, xlab = "DBH (cm)", ylab = "Biomass (kg)", main = "FagusGr")
 
 # Write the data in an Excel file
 
-PseudoDataAcerRu <- data.frame(dbhAcerRu, BMAcerRu)
-PseudoDataAcerRu <- subset(PseudoDataAcerRu, BMAcerRu>1)
+PseudoDataFagusGr <- data.frame(dbhFagusGr, BMFagusGr)
+PseudoDataFagusGr <- subset(PseudoDataFagusGr, BMFagusGr>1) ##We ignore the values less than 1
 
-plot(PseudoDataAcerRu$dbhAcerRu, PseudoDataAcerRu$BMAcerRu, pch = 16, xlab = "DBH (cm)", ylab = "Biomass (kg)", main = "AcerRu")
-
-
-
+plot(PseudoDataFagusGr$dbhFagusGr, PseudoDataFagusGr$BMFagusGr, pch = 16, xlab = "DBH (cm)", ylab = "Biomass (kg)", main = "FagusGr")
 
 # Specifies the full path to save the file
 
-write.csv(PseudoDataAcerRu, file = "AcerRu.csv", row.names = FALSE)
+write.csv(PseudoDataFagusGr, file = "FagusGr.csv", row.names = FALSE)
 
 ## print(sse)
 ## mean(rsq2)
@@ -102,64 +99,66 @@ write.csv(PseudoDataAcerRu, file = "AcerRu.csv", row.names = FALSE)
 ## Logaritmic differences
 
 noiter<-10000
-coefficients5 <- data.frame(intercept=rep(NA,noiter),slope=rep(NA,noiter))
+coefficients3 <- data.frame(intercept=rep(NA,noiter),slope=rep(NA,noiter))
 for(i in 1:noiter){
-  datatofit<- sample_n(PseudoDataAcerRu,200,replace=FALSE)
-  modelfit <- lm(log(BMAcerRu) ~ log(dbhAcerRu), data = na.omit(datatofit)) #Just add the other part
+  datatofit<- sample_n(PseudoDataFagusGr,200,replace=FALSE)
+  modelfit <- lm(log(BMFagusGr) ~ log(dbhFagusGr), data = na.omit(datatofit)) #Just add the other part
   
-  coefficients5[i,] <- unname(coef(modelfit))
+  
+  coefficients3[i,] <- unname(coef(modelfit))
+  
   
 }
 
 
 
-InterAcer<-mean(coefficients5$intercept)
-SlopeAcer<-mean(coefficients5$slope)
+InterFagus<-mean(coefficients3$intercept)
+SlopeFagus<-mean(coefficients3$slope)
 
 
 any(is.na(datatofit)) #NA revision in the data
 
 
-View(coefficients5)
+View(coefficients3)
 
 
-SDInterAcer<-sd(coefficients5$intercept) #standar deviation intercept
+SDInterFagus<-sd(coefficients3$intercept) #standar deviation intercept
 
-SDSlopeAcer<-sd(coefficients5$slope)
+SDSlopeFagus<-sd(coefficients3$slope)
 
 
 ### NEW COVARIANCE ##
 
 library(MASS)
 
-cov_matrix_AcerRu <- cov(coefficients5)
-mean_vector_AcerRu <- colMeans(coefficients5)
+cov_matrix_Fagus <- cov(coefficients3)
+mean_vector_Fagus <- colMeans(coefficients3)
 
 
-View(cov_matrix_AcerRu)
+View(cov_matrix_Fagus)
 
-# Simulate new pairs of a and b      Simular nuevos pares de a y b
-sim_ab_AcerRu <- as.data.frame(mvrnorm(n = 10, mu = mean_vector_AcerRu, Sigma = cov_matrix_AcerRu))
+# Simulate new pairs of a and b       Simular nuevos pares de a y b
+sim_ab_Fagus <- as.data.frame(mvrnorm(n = 10, mu = mean_vector_Fagus, Sigma = cov_matrix_Fagus))
 
 
 
-# Name columns for clarity            Nombrar columnas para claridad
-colnames(sim_ab_AcerRu) <- c("intercept_AcerRu", "slope_AcerRu")
-sim_ab_AcerRu$correlative <- seq_len(nrow(sim_ab_AcerRu))
-View(sim_ab_AcerRu)
+# Name columns for clarity           Nombrar columnas para claridad
+colnames(sim_ab_Fagus) <- c("intercept_Fagus", "slope_Fagus")
+sim_ab_Fagus$correlative <- seq_len(nrow(sim_ab_Fagus))
+View(sim_ab_Fagus)
 
 
 ## Is it true "? 
 
 
 
-# Originial Data Datos originales
-plot(coefficients5$intercept, coefficients5$slope, 
-     main = "Original vs Simulated Acer Rubrum", col = "blue", pch = 16, cex = 0.5,
+# Datos originales
+plot(coefficients3$intercept, coefficients3$slope, 
+     main = "Original vs Simulated Fagus", col = "blue", pch = 16, cex = 0.5,
      xlab = "Intercepto", ylab = "Slope")
 
-# Add SImulations Agregar simulaciones
-points(sim_ab_AcerRu$intercept, sim_ab_AcerRu$slope, col = rgb(1, 0, 0, 0.3), pch = 16)
+# Agregar simulaciones
+points(sim_ab_BetulAll$intercept, sim_ab_BetulAll$slope, col = rgb(1, 0, 0, 0.3), pch = 16)
 legend("topright", legend = c("Original", "Simulated"),
        col = c("blue", "red"), pch = 16)
 

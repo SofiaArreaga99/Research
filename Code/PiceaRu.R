@@ -12,8 +12,8 @@ library(dplyr)
 ##Specie: Balsam Fir 
 
 rsqp<-0.981 ##Published R^2 value 
-minDBH<-3 #From Jenkin´s
-maxDBH<-38 #From Jenkin´s
+minDBH<-5 #From Jenkin´s
+maxDBH<-65 #From Jenkin´s
 B0<- -1.6885 #From Ry´s paper
 B1<- 2.1752  #From Ry´s paper
 CF<- 1.008
@@ -33,7 +33,7 @@ dbhPiceaRu <- minDBH + (maxDBH - minDBH) * runif(10000, min = 0, max = 1)
 
 ## calculate the biomass using the published equation form
 
-meany <- exp(B0 + B1 * log(dbhPiceaRu)) #Should I multiply for the CF?
+meany <- (exp(B0 + B1 * log(dbhPiceaRu))*CF) #Should I multiply for the CF?
 
 ##Introduce Random Error into calculated biomass
 
@@ -99,21 +99,21 @@ write.csv(PseudoDataPiceaRu, file = "PiceaRu.csv", row.names = FALSE)
 ## Logaritmic differences
 
 noiter<-10000
-coefficients <- data.frame(intercept=rep(NA,noiter),slope=rep(NA,noiter))
+coefficients7 <- data.frame(intercept=rep(NA,noiter),slope=rep(NA,noiter))
 for(i in 1:noiter){
   datatofit<- sample_n(PseudoDataPiceaRu,200,replace=FALSE)
   modelfit <- lm(log(BMPiceaRu) ~ log(dbhPiceaRu), data = na.omit(datatofit)) #Just add the other part
   
   
-  coefficients[i,] <- unname(coef(modelfit))
+  coefficients7[i,] <- unname(coef(modelfit))
   
   
 }
 
 
 
-mean(coefficients$intercept)
-mean(coefficients$slope)
+InterPicea<-mean(coefficients7$intercept)
+SlopePicea<-mean(coefficients7$slope)
 
 any(is.na(datatofit)) #NA revision in the data
 
@@ -121,10 +121,50 @@ any(is.na(datatofit)) #NA revision in the data
 View(PseudoDataPiceaRu)
 
 
-View(coefficients)
+View(coefficients7)
 
 
-sd(coefficients$intercept) #standar deviation intercept
+SDInterPicea<-sd(coefficients7$intercept) #standar deviation intercept
 
-sd(coefficients$slope)
+SDSlopePicea<-sd(coefficients7$slope)
+
+
+### NEW COVARIANCE ##
+
+library(MASS)
+
+cov_matrix_PiceaRu <- cov(coefficients7)
+mean_vector_PiceaRu <- colMeans(coefficients7)
+
+
+View(cov_matrix_AcerSac)
+
+# Simulate new pairs of a and b      Simular nuevos pares de a y b
+sim_ab_PiceaRu <- as.data.frame(mvrnorm(n = 10, mu = mean_vector_PiceaRu, Sigma = cov_matrix_PiceaRu))
+
+
+
+# Name columns for clarity            Nombrar columnas para claridad
+colnames(sim_ab_PiceaRu) <- c("intercept_PiceaRu", "slope_PiceaRu")
+sim_ab_PiceaRu$correlative <- seq_len(nrow(sim_ab_PiceaRu))
+View(sim_ab_PiceaRu)
+
+
+## Is it true "? 
+
+
+
+# Originial Data Datos originales
+plot(coefficients7$intercept, coefficients7$slope, 
+     main = "Original vs Simulated Picea Rubrens", col = "blue", pch = 16, cex = 0.5,
+     xlab = "Intercepto", ylab = "Slope")
+
+# Add SImulations Agregar simulaciones
+points(sim_ab_PiceaRu$intercept, sim_ab_PiceaRu$slope, col = rgb(1, 0, 0, 0.3), pch = 16)
+legend("topright", legend = c("Original", "Simulated"),
+       col = c("blue", "red"), pch = 16)
+
+
+
+
 

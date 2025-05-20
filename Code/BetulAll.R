@@ -33,7 +33,7 @@ dbhBetulAll <- minDBH + (maxDBH - minDBH) * runif(10000, min = 0, max = 1)
 
 ## calculate the biomass using the published equation form
 
-meany <- exp(B0 + B1 * log(dbhBetulAll)) #Should I multiply for the CF?
+meany <-(exp(B0 + B1 * log(dbhBetulAll))*CF) #Should I multiply for the CF?
 
 ##Introduce Random Error into calculated biomass
 
@@ -99,29 +99,69 @@ write.csv(PseudoDataBalFir, file = "BetulAll.csv", row.names = FALSE)
 ## Logaritmic differences
 
 noiter<-10000
-coefficients <- data.frame(intercept=rep(NA,noiter),slope=rep(NA,noiter))
+coefficients2 <- data.frame(intercept=rep(NA,noiter),slope=rep(NA,noiter))
 for(i in 1:noiter){
   datatofit<- sample_n(PseudoDataBetulAll,200,replace=FALSE)
   modelfit <- lm(log(BMBetulAll) ~ log(dbhBetulAll), data = na.omit(datatofit)) #Just add the other part
   
   
-  coefficients[i,] <- unname(coef(modelfit))
+  coefficients2[i,] <- unname(coef(modelfit))
   
   
 }
 
 
 
-mean(coefficients$intercept)
-mean(coefficients$slope)
+InterBetula<-mean(coefficients2$intercept)
+SlopeBetula<-mean(coefficients2$slope)
 
 
 any(is.na(datatofit)) #NA revision in the data
 
 
-View(coefficients)
+View(coefficients2)
 
 
-sd(coefficients$intercept) #standar deviation intercept
+SDInterBetula<-sd(coefficients2$intercept) #standar deviation intercept
 
-sd(coefficients$slope)
+SDSlopeBetula<-sd(coefficients2$slope)
+
+
+
+### NEW COVARIANCE ##
+
+library(MASS)
+
+cov_matrix_BetulAll <- cov(coefficients2)
+mean_vector_BetulAll <- colMeans(coefficients2)
+
+
+View(cov_matrix_BetulAll)
+
+# Simulate new pairs of a and b        Simular nuevos pares de a y b
+sim_ab_BetulAll <- as.data.frame(mvrnorm(n = 10, mu = mean_vector_BetulAll, Sigma = cov_matrix_BetulAll))
+
+
+
+# Name columns for clarity            Nombrar columnas para claridad
+colnames(sim_ab_BetulAll) <- c("intercept_BetulAll", "slope_BetulAll")
+sim_ab_BetulAll$correlative <- seq_len(nrow(sim_ab_BetulAll))
+View(sim_ab_BetulAll)
+
+
+## Is it true "? 
+
+
+
+# Datos originales
+plot(coefficients2$intercept, coefficients2$slope, 
+     main = "Original vs Simulated Betull", col = "blue", pch = 16, cex = 0.5,
+     xlab = "Intercepto", ylab = "Slope")
+
+# Agregar simulaciones
+points(sim_ab_BetulAll$intercept, sim_ab_BetulAll$slope, col = rgb(1, 0, 0, 0.3), pch = 16)
+legend("topright", legend = c("Original", "Simulated"),
+       col = c("blue", "red"), pch = 16)
+
+
+
