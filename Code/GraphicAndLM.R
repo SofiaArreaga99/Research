@@ -14,10 +14,10 @@ datos <- data.frame(
 
 ggplot(datos, aes(x = Año, y = MgC)) +
   geom_line(color = "#2C3E50", size = 1) +  # Línea entre puntos
-  geom_point(size = 3, color = "#E67E22", shape = 20, fill = "#E67E22") +  # Puntos grandes y color llamativo
-  geom_errorbar(aes(ymin = MinError, ymax = MaxError), width = 0.5, color = "#34495E", size = 1) +  # Barras de error estilizadas
-  coord_cartesian(ylim = c(70, 125)) +  # Rango ajustado
-  theme_minimal(base_size = 14) +  # Tema limpio con fuente más grande
+  geom_point(size = 3, color = "#E67E22", shape = 20, fill = "#E67E22") +  # Puntos
+  geom_errorbar(aes(ymin = MinError, ymax = MaxError), width = 0.5, color = "#34495E", size = 1) +  # Barras de error 
+  coord_cartesian(ylim = c(70, 125)) +  
+  theme_minimal(base_size = 14) +  
   labs(
     x = "Year",
     y = "Mg C per Year",
